@@ -13,6 +13,7 @@ include prepareezpublish
 include addhosts
 include xdebug
 include git
+include acl
 
 class xdebug {
     require upgrade
@@ -64,6 +65,20 @@ class motd {
         owner   => 'root',
         group   => 'root',
         mode    => '644',
+    }
+}
+
+class acl {
+    require upgrade
+    package { "acl":
+        ensure => installed,
+    } ~>
+    file {'/etc/fstab':
+        ensure  => file,
+        content => template('/tmp/vagrant-puppet/manifests/acl/fstab.erb'),
+        owner   => 'root',
+        group   => 'root',
+        mode    => '644'
     }
 }
 
