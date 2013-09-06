@@ -6,7 +6,7 @@ Prototype development machine for eZ Publish 5.x, provisioned with Puppet.
 
 - Debian 7.1 x64
 - Apache 2.2.22
-- Postgres 9.1
+- Postgres 9.1.9
 - PHP 5.4.14
 - APC 3.1.13
 - Xdebug 2.2.3 or not, this is your choice through Vagrantfile setup

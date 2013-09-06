@@ -12,7 +12,6 @@ include composer
 include prepareezpublish
 include addhosts
 
-
 class upgrade {
     exec { 'apt-get update':
         command => '/usr/bin/apt-get update',
@@ -46,7 +45,7 @@ class motd {
 }
 
 class apachephp {
-    $neededpackages = [ "apache2", "apache2-mpm-prefork", "php5", "php5-cli", "php5-gd" ,"php5-mysql", "php-pear", "php-xml-rpc", "curl", "php5-intl", "php5-curl", "php5-xsl" ]
+    $neededpackages = [ "apache2", "apache2-mpm-prefork", "php5", "php5-cli", "php5-gd" ,"php5-pgsql", "php-pear", "php-xml-rpc", "curl", "php5-intl", "php5-curl", "php5-xsl" ]
     require upgrade
     package { $neededpackages:
         ensure => present,
@@ -87,17 +86,48 @@ class imagick {
 }
 
 class db {
-    require upgrade    
-    $neededpackages = [ "mysql-client-5.5", "mysql-server-5.5"]
+    require upgrade     
+    $neededpackages = [ "postgresql-9.1","postgresql-client-9.1","postgresql-common", "postgresql-contrib-9.1" ]
     package { $neededpackages:
-        ensure => installed
+      ensure => installed
+    } ->
+    file    {'/etc/postgresql/9.1/main/pg_hba.conf':
+      ensure  => file,
+      content => template('/tmp/vagrant-puppet/manifests/postgres/pg_hba.conf.erb'),
+      owner   => 'root',
+      group   => 'root',
+      mode    => '644',
+      require => Package["postgresql-9.1"],
+    } ->
+    file    {'/usr/share/postgresql/9.1/postgresql.conf':
+      ensure  => file,
+      content => template('/tmp/vagrant-puppet/manifests/postgres/postgresql.conf.erb'),
+      owner   => 'root',
+      group   => 'root',
+      mode    => '644',
+      require => Package["postgresql-9.1"],
     } ~>
-    service { "mysql":
-        ensure => running,
-        hasstatus => true,
-        hasrestart => true,
-        require => Package["mysql-server-5.5"],
-        restart => true;
+    service { "postgresql":
+      ensure => running,
+      hasstatus => true,
+      hasrestart => true,
+      require => Package["postgresql-9.1"],
+      restart => true,
+      before => Exec["create-ezp-db"],
+    }   
+}
+
+class createdb {
+    require db
+    exec { "restart postgresql":
+        command => "/usr/sbin/service postgresql restart",
+        path => "/usr/bin:/usr/sbin:/bin:/usr/local/bin",
+        returns => [ 0, 1]
+    } ~>
+    exec { "create-ezp-db":
+      command => "/bin/bash /tmp/vagrant-puppet/manifests/postgres/preparedb.sh",
+      path    => "/usr/local/bin/:/bin/",
+      require => Package["postgresql-9.1"]
     }
 }
 
@@ -111,15 +141,6 @@ class apc {
     file    {'/etc/php5/apache2/conf.d/20-apc.ini':
         ensure  => file,
         content => template('/tmp/vagrant-puppet/manifests/php/apc.ini.erb'),
-    }
-}
-
-class createdb {
-    require upgrade    
-    exec { "create-ezp-db":
-        command => "/usr/bin/mysql -uroot -e \"create database ezp character set utf8; grant all on ezp.* to ezp@localhost identified by 'ezp';\"",
-        require => Service["mysql"],
-        returns => [ 0, 1, '', ' ']
     }
 }
 
@@ -181,7 +202,7 @@ class prepareezpublish {
     exec { "prepare eZ Publish":
         command => "/bin/bash /tmp/vagrant-puppet/manifests/preparezpublish.sh",
         path    => "/usr/local/bin/:/bin/",
-        require => Package[ "apache2", "apache2-mpm-prefork", "php5", "php5-cli", "php5-gd" ,"php5-mysql", "php-pear", "php-xml-rpc", "curl", "php5-intl", "php5-curl", "php5-xsl" ]
+        require => Package[ "apache2", "apache2-mpm-prefork", "php5", "php5-cli", "php5-gd", "php-pear", "php-xml-rpc", "curl", "php5-intl", "php5-curl", "php5-xsl" ]
     } ~>
     exec { "Fix Permissions":
         command => "/bin/chown -R www-data:www-data /var/www/",

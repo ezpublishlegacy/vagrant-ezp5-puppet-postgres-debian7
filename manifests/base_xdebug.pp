@@ -110,26 +110,26 @@ class imagick {
 
 class db {
     require upgrade     
-    $neededpackages = [ "postgresql-9.1","postgresql-client-9.1","postgresql-common" ]
+    $neededpackages = [ "postgresql-9.1","postgresql-client-9.1","postgresql-common", "postgresql-contrib-9.1" ]
     package { $neededpackages:
       ensure => installed
     } ->
-    file    {'/var/lib/pgsql/data/pg_hba.conf':
+    file    {'/etc/postgresql/9.1/main/pg_hba.conf':
       ensure  => file,
       content => template('/tmp/vagrant-puppet/manifests/postgres/pg_hba.conf.erb'),
       owner   => 'root',
       group   => 'root',
       mode    => '644',
-      require => Package["postgresql-server"],
+      require => Package["postgresql-9.1"],
     } ->
-    file    {'/usr/share/pgsql/postgresql.conf':
+    file    {'/usr/share/postgresql/9.1/postgresql.conf':
       ensure  => file,
       content => template('/tmp/vagrant-puppet/manifests/postgres/postgresql.conf.erb'),
       owner   => 'root',
       group   => 'root',
       mode    => '644',
-      require => Package["postgresql-server"],
-    } ->    
+      require => Package["postgresql-9.1"],
+    } ~>
     service { "postgresql":
       ensure => running,
       hasstatus => true,
@@ -137,11 +137,16 @@ class db {
       require => Package["postgresql-9.1"],
       restart => true,
       before => Exec["create-ezp-db"],
-    }
+    }   
 }
 
 class createdb {
-    require db     
+    require db
+    exec { "restart postgresql":
+        command => "/usr/sbin/service postgresql restart",
+        path => "/usr/bin:/usr/sbin:/bin:/usr/local/bin",
+        returns => [ 0, 1]
+    } ~>
     exec { "create-ezp-db":
       command => "/bin/bash /tmp/vagrant-puppet/manifests/postgres/preparedb.sh",
       path    => "/usr/local/bin/:/bin/",
@@ -220,7 +225,7 @@ class prepareezpublish {
     exec { "prepare eZ Publish":
         command => "/bin/bash /tmp/vagrant-puppet/manifests/preparezpublish.sh",
         path    => "/usr/local/bin/:/bin/",
-        require => Package[ "apache2", "apache2-mpm-prefork", "php5", "php5-cli", "php5-gd" ,"php5-mysql", "php-pear", "php-xml-rpc", "curl", "php5-intl", "php5-curl", "php5-xsl" ]
+        require => Package[ "apache2", "apache2-mpm-prefork", "php5", "php5-cli", "php5-gd", "php-pear", "php-xml-rpc", "curl", "php5-intl", "php5-curl", "php5-xsl" ]
     } ~>
     exec { "Fix Permissions":
         command => "/bin/chown -R www-data:www-data /var/www/",
