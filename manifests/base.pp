@@ -153,7 +153,7 @@ class apc {
     package { $neededpackages:
         ensure => installed
     } ~>
-    file    {'/etc/php5/apache2/conf.d/20-apc.ini':
+    file    {'/etc/php5/apache2filter/conf.d/20-apc.ini':
         ensure  => file,
         content => template('/tmp/vagrant-puppet/manifests/php/apc.ini.erb'),
     }
