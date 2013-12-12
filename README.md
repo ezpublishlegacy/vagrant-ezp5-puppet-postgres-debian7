@@ -43,6 +43,10 @@ eZ Publish 5 Project:
   admin hostname: admin.ezp5.dev.vagrant
   environment: dev
 ```
+## Limitations
+
+- There is an issue with the network and guest aditions, you have to use Vagrant 1.3.4 http://downloads.vagrantup.com/tags/v1.3.4
+- VirtualBox 4.2, version 4.3 isn't supported yet
 
 ## COPYRIGHT
 Copyright (C) 1999-2013 eZ Systems AS. All rights reserved.
